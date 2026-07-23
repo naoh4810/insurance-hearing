@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b5cad">
+<title>保険ヒアリング AIアシスト</title>
+<style>
+  :root{
+    --bg:#eef2f7; --card:#fff; --ink:#17202e; --sub:#66738a;
+    --line:#dbe1ea; --field:#fbfcfe; --accent:#0b5cad; --accent-2:#1477d0;
+    --accent-soft:#e5f0fb; --accent-line:#c5ddf5;
+    --ok:#1a8754; --warn:#b45309; --warn-soft:#fef3e2; --warn-line:#f5dcad;
+    --danger:#c0362c; --danger-soft:#fdecea; --danger-line:#f3c9c4;
+    --shadow:0 2px 10px rgba(20,40,70,.14); --radius:14px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1621; --card:#182231; --ink:#e8edf4; --sub:#9aa7b8;
+      --line:#2a3646; --field:#111b28; --accent:#4a9eea; --accent-2:#3b8fe0;
+      --accent-soft:#182c40; --accent-line:#2c4763;
+      --ok:#3ec07a; --warn:#e0a54a; --warn-soft:#2e2410; --warn-line:#4d3d1c;
+      --danger:#e8776c; --danger-soft:#331d1b; --danger-line:#4d2b28;
+      --shadow:0 2px 12px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#eef2f7; --card:#fff; --ink:#17202e; --sub:#66738a;
+    --line:#dbe1ea; --field:#fbfcfe; --accent:#0b5cad; --accent-2:#1477d0;
+    --accent-soft:#e5f0fb; --accent-line:#c5ddf5;
+    --ok:#1a8754; --warn:#b45309; --warn-soft:#fef3e2; --warn-line:#f5dcad;
+    --danger:#c0362c; --danger-soft:#fdecea; --danger-line:#f3c9c4;
+    --shadow:0 2px 10px rgba(20,40,70,.14);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1621; --card:#182231; --ink:#e8edf4; --sub:#9aa7b8;
+    --line:#2a3646; --field:#111b28; --accent:#4a9eea; --accent-2:#3b8fe0;
+    --accent-soft:#182c40; --accent-line:#2c4763;
+    --ok:#3ec07a; --warn:#e0a54a; --warn-soft:#2e2410; --warn-line:#4d3d1c;
+    --danger:#e8776c; --danger-soft:#331d1b; --danger-line:#4d2b28;
+    --shadow:0 2px 12px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+    font-size:16px; line-height:1.65; padding-bottom:118px; margin:0;
+  }
+  header{
+    position:sticky; top:0; z-index:10;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff;
+    padding:14px 16px; box-shadow:var(--shadow);
+  }
+  header h1{margin:0; font-size:17px; font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  header p{margin:3px 0 0; font-size:12px; opacity:.9}
+  .badge-ai{
+    background:rgba(255,255,255,.22); font-size:10px; font-weight:700;
+    padding:2px 8px; border-radius:999px; letter-spacing:.5px;
+  }
+  main{max-width:660px; margin:0 auto; padding:16px}
+  .card{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); padding:16px; margin-bottom:14px;
+  }
+  .card h2{
+    margin:0 0 14px; font-size:14px; font-weight:700; color:var(--accent);
+    display:flex; align-items:center; gap:8px;
+  }
+  .card h2 .n{
+    background:var(--accent); color:#fff; width:22px; height:22px;
+    border-radius:50%; display:inline-flex; align-items:center;
+    justify-content:center; font-size:12px; flex:none;
+  }
+  label.field{display:block; margin-bottom:16px}
+  label.field:last-child{margin-bottom:0}
+  .lab{display:block; font-size:13px; font-weight:600; margin-bottom:7px; color:var(--sub)}
+  input[type=text], input[type=number], textarea, select{
+    width:100%; padding:12px; font-size:16px; color:var(--ink);
+    background:var(--field); border:1px solid var(--line); border-radius:10px;
+    font-family:inherit;
+  }
+  input:focus, textarea:focus, select:focus{
+    outline:none; border-color:var(--accent); background:var(--card);
+    box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  textarea{resize:vertical; min-height:80px}
+  .hint{font-size:12px; color:var(--sub); margin:5px 0 0}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{position:relative}
+  .chip input{position:absolute; opacity:0; width:0; height:0}
+  .chip span{
+    display:inline-block; padding:9px 14px; font-size:14px;
+    border:1px solid var(--line); border-radius:999px;
+    background:var(--field); color:var(--ink); cursor:pointer; user-select:none;
+    transition:.12s;
+  }
+  .chip input:checked + span{
+    background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;
+  }
+  .chip input:focus-visible + span{box-shadow:0 0 0 3px var(--accent-soft)}
+  #result{display:none}
+  #result.show{display:block}
+  .out-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; margin-bottom:14px}
+  .out-head{padding:13px 16px; font-size:14px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px}
+  .out-head.blue{background:var(--accent)}
+  .out-head.warn{background:var(--warn)}
+  .out-head.green{background:var(--ok)}
+  .out-body{padding:16px}
+  .summary-block{white-space:pre-wrap; font-size:14.5px; line-height:1.75}
+  .flag{
+    display:flex; gap:10px; padding:11px 12px; border-radius:10px; margin-bottom:9px;
+    font-size:14px; align-items:flex-start;
+  }
+  .flag:last-child{margin-bottom:0}
+  .flag.high{background:var(--danger-soft); border:1px solid var(--danger-line)}
+  .flag.mid{background:var(--warn-soft); border:1px solid var(--warn-line)}
+  .flag.info{background:var(--accent-soft); border:1px solid var(--accent-line)}
+  .flag .ic{flex:none; font-weight:700}
+  .flag .tt{font-weight:700; display:block; margin-bottom:1px}
+  .flag .ds{font-size:12.5px; color:var(--sub)}
+  .tag-prio{font-size:10px; font-weight:700; padding:1px 7px; border-radius:999px; margin-left:auto; flex:none; align-self:center; color:#fff}
+  .tag-prio.high{background:var(--danger)}
+  .tag-prio.mid{background:var(--warn)}
+  .tag-prio.info{background:var(--accent)}
+  ul.dir{margin:0; padding-left:20px}
+  ul.dir li{margin-bottom:7px}
+  ul.dir li b{color:var(--accent)}
+  .empty{color:var(--sub); font-size:13px; margin:0}
+  .bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:20;
+    background:color-mix(in srgb, var(--card) 92%, transparent);
+    backdrop-filter:blur(8px); border-top:1px solid var(--line); padding:10px 12px;
+    display:grid; grid-template-columns:1fr 1fr; gap:8px;
+    max-width:660px; margin:0 auto;
+  }
+  .btn{
+    padding:14px; font-size:15px; font-weight:700; border-radius:12px;
+    border:1px solid var(--accent); cursor:pointer; font-family:inherit;
+  }
+  .btn.primary{background:var(--accent); color:#fff}
+  .btn.ghost{background:var(--card); color:var(--accent)}
+  .btn.wide{grid-column:1 / -1}
+  .btn:active{transform:scale(.98)}
+  .toast{
+    position:fixed; left:50%; bottom:150px; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:var(--card); padding:11px 18px; border-radius:999px;
+    font-size:14px; opacity:0; pointer-events:none; transition:.25s; z-index:50;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .disclaimer{font-size:11px; color:var(--sub); text-align:center; margin:4px 0 10px; line-height:1.5}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛡️ 保険ヒアリング AIアシスト <span class="badge-ai">AI ASSIST</span></h1>
+  <p>その場で入力 → AIが「社内共有メモ」と「持ち帰り確認リスト」を自動生成</p>
+</header>
+
+<main>
+  <div id="formArea">
+  <form id="hearing" autocomplete="off">
+
+    <section class="card">
+      <h2><span class="n">1</span>お客様の基本情報</h2>
+      <div class="row2">
+        <label class="field">
+          <span class="lab">お名前 / 呼称</span>
+          <input type="text" name="name" placeholder="例）田中 様">
+        </label>
+        <label class="field">
+          <span class="lab">年齢</span>
+          <input type="number" name="age" inputmode="numeric" placeholder="例）38">
+        </label>
+      </div>
+      <label class="field">
+        <span class="lab">ご職業・働き方</span>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="job" value="会社員"><span>会社員</span></label>
+          <label class="chip"><input type="radio" name="job" value="公務員"><span>公務員</span></label>
+          <label class="chip"><input type="radio" name="job" value="自営業・フリーランス"><span>自営業・フリーランス</span></label>
+          <label class="chip"><input type="radio" name="job" value="専業主婦(夫)"><span>専業主婦(夫)</span></label>
+          <label class="chip"><input type="radio" name="job" value="経営者"><span>経営者</span></label>
+        </div>
+        <p class="hint">自営・経営者は公的保障が薄いため提案が変わります</p>
+      </label>
+      <label class="field">
+        <span class="lab">世帯年収（おおよそ）</span>
+        <input type="text" name="income" placeholder="例）600万円">
+      </label>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">2</span>ご家族・ライフプラン</h2>
+      <label class="field">
+        <span class="lab">ご家族構成</span>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="family" value="配偶者"><span>配偶者あり</span></label>
+          <label class="chip"><input type="checkbox" name="family" value="子どもあり"><span>お子さまあり</span></label>
+          <label class="chip"><input type="checkbox" name="family" value="親を扶養"><span>親を扶養</span></label>
+          <label class="chip"><input type="checkbox" name="family" value="独身"><span>独身</span></label>
+        </div>
+      </label>
+      <label class="field">
+        <span class="lab">お子さまの人数・年齢</span>
+        <input type="text" name="children" placeholder="例）2人（8歳・5歳）">
+      </label>
+      <label class="field">
+        <span class="lab">今後予定しているライフイベント</span>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="events" value="結婚"><span>結婚</span></label>
+          <label class="chip"><input type="checkbox" name="events" value="出産・育児"><span>出産・育児</span></label>
+          <label class="chip"><input type="checkbox" name="events" value="住宅購入"><span>住宅購入</span></label>
+          <label class="chip"><input type="checkbox" name="events" value="教育資金"><span>教育資金</span></label>
+          <label class="chip"><input type="checkbox" name="events" value="転職・独立"><span>転職・独立</span></label>
+          <label class="chip"><input type="checkbox" name="events" value="退職・老後"><span>退職・老後</span></label>
+        </div>
+      </label>
+      <label class="field">
+        <span class="lab">住宅ローン</span>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="loan" value="あり(団信付き)"><span>あり（団信付き）</span></label>
+          <label class="chip"><input type="radio" name="loan" value="あり(団信なし)"><span>あり（団信なし）</span></label>
+          <label class="chip"><input type="radio" name="loan" value="なし"><span>なし</span></label>
+          <label class="chip"><input type="radio" name="loan" value="検討中"><span>検討中</span></label>
+        </div>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">3</span>現在の備え（既契約）</h2>
+      <label class="field">
+        <span class="lab">今入っている保険（他社含む）</span>
+        <textarea name="existing" placeholder="例）A社の医療保険（入院日額5千円）、勤務先の団体定期"></textarea>
+        <p class="hint">重複・不足の発見、乗り換え提案の材料になります</p>
+      </label>
+      <label class="field">
+        <span class="lab">毎月の保険料合計（現状）</span>
+        <input type="text" name="curpremium" placeholder="例）月1万5千円">
+      </label>
+      <label class="field">
+        <span class="lab">公的保障（遺族年金・高額療養費など）の認識</span>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="publicknow" value="よく知っている"><span>よく知っている</span></label>
+          <label class="chip"><input type="radio" name="publicknow" value="なんとなく"><span>なんとなく</span></label>
+          <label class="chip"><input type="radio" name="publicknow" value="ほぼ知らない"><span>ほぼ知らない</span></label>
+        </div>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">4</span>健康状態（引受にかかわる重要項目）</h2>
+      <label class="field">
+        <span class="lab">健康状態</span>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="health" value="既往歴あり"><span>既往歴あり</span></label>
+          <label class="chip"><input type="checkbox" name="health" value="通院中"><span>通院中</span></label>
+          <label class="chip"><input type="checkbox" name="health" value="服薬中"><span>服薬中</span></label>
+          <label class="chip"><input type="checkbox" name="health" value="手術歴あり"><span>手術歴あり</span></label>
+          <label class="chip"><input type="checkbox" name="health" value="喫煙あり"><span>喫煙あり</span></label>
+          <label class="chip"><input type="checkbox" name="health" value="特になし"><span>特になし</span></label>
+        </div>
+      </label>
+      <label class="field">
+        <span class="lab">健康に関する補足（病名・時期など）</span>
+        <textarea name="healthnote" placeholder="例）3年前に高血圧で通院、現在は服薬でコントロール中"></textarea>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">5</span>いちばんのご不安・ご要望</h2>
+      <label class="field">
+        <span class="lab">特に備えたいこと（複数可）</span>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="needs" value="万一の死亡保障"><span>万一の死亡保障</span></label>
+          <label class="chip"><input type="checkbox" name="needs" value="病気・入院"><span>病気・入院</span></label>
+          <label class="chip"><input type="checkbox" name="needs" value="がん"><span>がん</span></label>
+          <label class="chip"><input type="checkbox" name="needs" value="就業不能・働けないリスク"><span>就業不能</span></label>
+          <label class="chip"><input type="checkbox" name="needs" value="老後資金"><span>老後資金</span></label>
+          <label class="chip"><input type="checkbox" name="needs" value="教育資金"><span>教育資金</span></label>
+          <label class="chip"><input type="checkbox" name="needs" value="介護"><span>介護</span></label>
+          <label class="chip"><input type="checkbox" name="needs" value="節税・資産形成"><span>節税・資産形成</span></label>
+        </div>
+      </label>
+      <label class="field">
+        <span class="lab">お客様の言葉（生の声・きっかけ）</span>
+        <textarea name="voice" placeholder="例）子どもが生まれて、自分に何かあったときが不安になった"></textarea>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2><span class="n">6</span>ご予算・その他</h2>
+      <label class="field">
+        <span class="lab">毎月の保険料の希望上限</span>
+        <input type="text" name="budget" placeholder="例）月1万円まで">
+      </label>
+      <label class="field">
+        <span class="lab">商談メモ・次回への申し送り</span>
+        <textarea name="memo" placeholder="例）奥様も同席希望。次回は具体プランを持参。決裁は本人。"></textarea>
+      </label>
+    </section>
+
+  </form>
+  </div>
+
+  <div id="result">
+    <p class="disclaimer">↓ 以下はAIが入力内容から自動生成した下書きです。最終判断・査定は必ず社内規定に従ってください。</p>
+
+    <div class="out-card">
+      <div class="out-head blue">📋 社内共有メモ（そのままコピペ可）</div>
+      <div class="out-body">
+        <div class="summary-block" id="summaryOut"></div>
+      </div>
+    </div>
+
+    <div class="out-card">
+      <div class="out-head warn">🏢 上司・本社に持ち帰って確認すること</div>
+      <div class="out-body" id="flagsOut"></div>
+    </div>
+
+    <div class="out-card">
+      <div class="out-head green">🎯 提案の方向性（たたき台）</div>
+      <div class="out-body">
+        <ul class="dir" id="directionOut"></ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="bar" id="barForm">
+  <button type="button" class="btn primary wide" onclick="analyze()">✨ AIでヒアリングをまとめる</button>
+</div>
+<div class="bar" id="barResult" style="display:none">
+  <button type="button" class="btn ghost" onclick="backToForm()">← 入力に戻る</button>
+  <button type="button" class="btn primary" onclick="copySummary()">📋 メモをコピー</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const form = document.getElementById('hearing');
+const $ = s => document.querySelector(s);
+function val(name){ const el = form.elements[name]; return el ? (el.value||'').trim() : ''; }
+function multi(name){ return [...form.querySelectorAll('[name="'+name+'"]:checked')].map(e=>e.value); }
+
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+function analyze(){
+  const d = {
+    name: val('name')||'（お名前未記入）',
+    age: val('age'), job: val('job'), income: val('income'),
+    family: multi('family'), children: val('children'),
+    events: multi('events'), loan: val('loan'),
+    existing: val('existing'), curpremium: val('curpremium'),
+    publicknow: val('publicknow'),
+    health: multi('health'), healthnote: val('healthnote'),
+    needs: multi('needs'), voice: val('voice'),
+    budget: val('budget'), memo: val('memo')
+  };
+  buildSummary(d); buildFlags(d); buildDirection(d);
+  $('#formArea').style.display='none';
+  $('#result').classList.add('show');
+  $('#barForm').style.display='none';
+  $('#barResult').style.display='grid';
+  window.scrollTo({top:0, behavior:'smooth'});
+  toast('AIがヒアリングをまとめました');
+}
+
+function buildSummary(d){
+  const L = [];
+  const today = new Date().toLocaleDateString('ja-JP');
+  L.push('■ ヒアリング日：'+today);
+  L.push('■ お客様：'+d.name+(d.age?'（'+d.age+'歳）':'')+(d.job?' / '+d.job:''));
+  if(d.income) L.push('■ 世帯年収：'+d.income);
+  const fam = [];
+  if(d.family.length) fam.push(d.family.join('・'));
+  if(d.children) fam.push('子：'+d.children);
+  if(fam.length) L.push('■ 家族構成：'+fam.join(' / '));
+  if(d.events.length) L.push('■ 今後の予定：'+d.events.join('・'));
+  if(d.loan) L.push('■ 住宅ローン：'+d.loan);
+  if(d.existing) L.push('■ 既契約：'+d.existing+(d.curpremium?'（現状 '+d.curpremium+'）':''));
+  if(d.publicknow) L.push('■ 公的保障の認識：'+d.publicknow);
+  const hlt = d.health.filter(h=>h!=='特になし');
+  L.push('■ 健康状態：'+(hlt.length?hlt.join('・'):'申告上は特になし')+(d.healthnote?'（'+d.healthnote+'）':''));
+  if(d.needs.length) L.push('■ ニーズ：'+d.needs.join('・'));
+  if(d.voice) L.push('■ お客様の声：「'+d.voice+'」');
+  if(d.budget) L.push('■ ご予算：'+d.budget);
+  if(d.memo) L.push('■ 商談メモ：'+d.memo);
+  $('#summaryOut').textContent = L.join('\n');
+}
+
+function buildFlags(d){
+  const flags = [];
+  const push = (level,title,desc)=>flags.push({level,title,desc});
+  const hlt = d.health.filter(h=>h!=='特になし');
+  if(hlt.length){
+    const medical = d.health.filter(h=>['既往歴あり','通院中','服薬中','手術歴あり'].includes(h));
+    if(medical.length){
+      push('high','引受可否・特別条件の査定を確認',
+        '告知該当（'+medical.join('・')+'）。標準体で入れるか、割増・部位不担保・引受不可かを査定部門へ。'+(d.healthnote?'補足：'+d.healthnote:''));
+    }
+    if(d.health.includes('喫煙あり')){
+      push('mid','非喫煙者割引の適用可否','喫煙申告あり。喫煙者料率になるか、禁煙期間による割引条件を確認。');
+    }
+  }
+  if(d.existing){
+    push('mid','既契約の見直し可否を確認','解約返戻金・払済・下取りの有無、乗り換えが本当に有利かを試算。既契約の解約は不利益になりうるため要確認。');
+  }
+  if(d.budget && d.needs.length>=3){
+    push('mid','予算内で優先順位づけが必要','ニーズ'+d.needs.length+'件に対しご予算「'+d.budget+'」。全部は入りきらない可能性。優先度の高い保障に絞ったプランを本社シミュレーションで。');
+  }
+  if(d.family.includes('子どもあり')){
+    push('info','必要保障額シミュレーションを持ち帰り','遺族年金・末子独立までの生活費・教育費から必要保障額を試算。過不足のない金額でプラン作成を依頼。');
+  }
+  if(d.loan==='あり(団信なし)'){
+    push('high','団信なしローンの死亡保障を上乗せ確認','住宅ローン残債をカバーする保障が別途必要。残債額のヒアリングと保障設計を確認。');
+  } else if(d.loan==='あり(団信付き)' && d.needs.includes('万一の死亡保障')){
+    push('info','団信との重複を調整','団信でローン分はカバー済み。死亡保障の必要額から団信分を差し引いて設計。');
+  }
+  if(d.job==='自営業・フリーランス'||d.job==='経営者'){
+    push('mid','公的保障の薄さを踏まえた設計','遺族厚生年金・傷病手当金が原則なし。就業不能・医療の手厚めプラン、経営者なら法人契約・保障の税務も社内確認。');
+  }
+  if(d.needs.includes('老後資金')||d.needs.includes('節税・資産形成')){
+    push('info','他制度との比較資料を用意','iDeCo・NISA・個人年金保険の返戻率と税制メリットを比較。保険が最適かを含めて本社資料を確認。');
+  }
+  if(d.needs.includes('がん')||d.needs.includes('就業不能・働けないリスク')){
+    push('info','専用商品の最新プランを確認','がん保険・就業不能保険は改定が多い。最新の給付条件と他社比較を持ち帰り。');
+  }
+  const el = $('#flagsOut');
+  if(!flags.length){
+    el.innerHTML = '<p class="empty">自動で検出された確認事項はありません。基本の見積り取得のみで進められそうです。</p>';
+    return;
+  }
+  const order = {high:0, mid:1, info:2};
+  flags.sort((a,b)=>order[a.level]-order[b.level]);
+  const icon = {high:'🔴',mid:'🟠',info:'🔵'};
+  const lab = {high:'最優先',mid:'要確認',info:'補足'};
+  el.innerHTML = flags.map(f=>
+    '<div class="flag '+f.level+'"><span class="ic">'+icon[f.level]+'</span>'+
+    '<span><span class="tt">'+esc(f.title)+'</span><span class="ds">'+esc(f.desc)+'</span></span>'+
+    '<span class="tag-prio '+f.level+'">'+lab[f.level]+'</span></div>').join('');
+}
+
+function buildDirection(d){
+  const dir = [];
+  if(d.needs.includes('万一の死亡保障')) dir.push('必要保障額に合わせた<b>死亡保障（収入保障 or 定期）</b>を軸に。');
+  if(d.needs.includes('病気・入院')) dir.push('入院日額・一時金型の<b>医療保険</b>で自己負担をカバー。');
+  if(d.needs.includes('がん')) dir.push('診断一時金重視の<b>がん保険</b>を提案。');
+  if(d.needs.includes('就業不能・働けないリスク')) dir.push('長期の収入減に備える<b>就業不能保険</b>を追加。');
+  if(d.needs.includes('老後資金')) dir.push('<b>個人年金／変額</b>と公的年金の不足額をセットで説明。');
+  if(d.needs.includes('教育資金')) dir.push('<b>学資 or 低解約返戻金型終身</b>で計画的に準備。');
+  if(d.needs.includes('介護')) dir.push('<b>介護保険・認知症保険</b>で長期化リスクに対応。');
+  if(d.needs.includes('節税・資産形成')) dir.push('生命保険料控除＋<b>NISA/iDeCoとの役割分担</b>で提案。');
+  if(d.publicknow==='ほぼ知らない') dir.push('まず<b>公的保障の範囲を説明</b>し「不足分だけ民間で補う」流れで信頼構築。');
+  if(d.existing) dir.push('既契約を<b>保障の重複・不足マップ</b>に整理して見える化。');
+  const el = $('#directionOut');
+  if(!dir.length){ el.innerHTML = '<li class="empty">ニーズ未選択のため、次回に優先課題のヒアリングを。</li>'; return; }
+  el.innerHTML = dir.map(x=>'<li>'+x+'</li>').join('');
+}
+
+function esc(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function backToForm(){
+  $('#formArea').style.display='block';
+  $('#result').classList.remove('show');
+  $('#barForm').style.display='grid';
+  $('#barResult').style.display='none';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function copySummary(){
+  const txt = $('#summaryOut').textContent;
+  navigator.clipboard.writeText(txt).then(
+    ()=>toast('社内共有メモをコピーしました'),
+    ()=>toast('コピーできませんでした')
+  );
+}
+
+const KEY='insurance_hearing_draft';
+form.addEventListener('input', ()=>{
+  const data={};
+  new FormData(form).forEach((v,k)=>{ (data[k]=data[k]||[]).push(v); });
+  try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+});
+(function restore(){
+  try{
+    const data=JSON.parse(localStorage.getItem(KEY)||'{}');
+    Object.entries(data).forEach(([k,arr])=>{
+      arr.forEach(v=>{
+        form.querySelectorAll('[name="'+k+'"]').forEach(el=>{
+          if(el.type==='checkbox'||el.type==='radio'){ if(el.value===v) el.checked=true; }
+          else el.value=v;
+        });
+      });
+    });
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
