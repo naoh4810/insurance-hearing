@@ -1,0 +1,42 @@
+{
+  "keywords": [
+    "保険", "約款", "共済", "標準利率", "予定利率", "高額療養費", "先進医療",
+    "診療報酬", "生命保険料控除", "参考純率", "基準料率", "地震保険", "火災保険",
+    "自賠責", "遺族年金", "公的年金", "医療費", "介護保険", "保険業法", "監督指針"
+  ],
+  "sources": [
+    {
+      "name": "金融庁",
+      "type": "rss",
+      "url": "https://www.fsa.go.jp/fsaNewsListAll_rss2.xml",
+      "filter": true
+    },
+    {
+      "name": "厚生労働省",
+      "type": "rss",
+      "url": "https://www.mhlw.go.jp/stf/news.rdf",
+      "filter": true
+    },
+    {
+      "name": "損害保険料率算出機構",
+      "type": "html",
+      "url": "https://www.giroj.or.jp/news/",
+      "link_pattern": "/20\\d{2}/\\d{8}",
+      "filter": false
+    },
+    {
+      "name": "生命保険協会",
+      "type": "html",
+      "url": "https://www.seiho.or.jp/info/news/",
+      "link_pattern": "/info/news/.*\\d{8}",
+      "filter": false
+    },
+    {
+      "name": "日本損害保険協会",
+      "type": "html",
+      "url": "https://www.sonpo.or.jp/news/release/",
+      "link_pattern": "/news/release/20\\d{2}/",
+      "filter": false
+    }
+  ]
+}
